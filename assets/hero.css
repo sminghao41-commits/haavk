@@ -1,0 +1,312 @@
+/* ============================================================
+   哈夫克集团 · 官网动效与主视觉轮播（v2）
+   命名前缀 hk- / hero- ：避免与既有样式冲突
+   ============================================================ */
+
+/* ---------- 通用缓动与降级 ---------- */
+:root {
+  --ease: cubic-bezier(.22, .61, .36, 1);
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+}
+
+/* 关动效开关：?nofx=1 时 hero.js 给 <html> 加 .no-fx。
+   用途：截图核验（headless 不推进合成器动画时钟）、低性能设备、打印。 */
+.no-fx *, .no-fx *::before, .no-fx *::after {
+  transition: none !important;
+  animation: none !important;
+}
+.no-fx .slide { visibility: hidden; }
+.no-fx .slide.on { visibility: visible; }
+.no-fx .eyebrow, .no-fx .slide h1 > span, .no-fx .slide p.lead, .no-fx .slide .hero-cta,
+.no-fx .hero-art img {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+html { scroll-behavior: smooth; }
+
+/* ---------- 滚动进场 ---------- */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity .72s var(--ease-out), transform .78s var(--ease-out);
+  will-change: opacity, transform;
+}
+[data-reveal].is-in { opacity: 1; transform: none; }
+
+.reveal-stagger > * {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity .7s var(--ease-out), transform .8s var(--ease-out);
+}
+.reveal-stagger.is-in > * { opacity: 1; transform: none; }
+.reveal-stagger.is-in > *:nth-child(1) { transition-delay: .04s; }
+.reveal-stagger.is-in > *:nth-child(2) { transition-delay: .12s; }
+.reveal-stagger.is-in > *:nth-child(3) { transition-delay: .20s; }
+.reveal-stagger.is-in > *:nth-child(4) { transition-delay: .28s; }
+.reveal-stagger.is-in > *:nth-child(5) { transition-delay: .36s; }
+.reveal-stagger.is-in > *:nth-child(6) { transition-delay: .44s; }
+
+/* ---------- 顶部滚动进度条 ---------- */
+.hk-progress {
+  position: fixed; top: 0; left: 0; height: 2px; width: 100%;
+  transform: scaleX(0); transform-origin: 0 50%;
+  background: linear-gradient(90deg, var(--accent-dk), var(--accent));
+  z-index: 999; pointer-events: none;
+}
+
+/* ---------- 导航吸顶 ---------- */
+.topbar { transition: transform .38s var(--ease), opacity .38s var(--ease); }
+body.hk-scrolled .topbar { transform: translateY(-100%); opacity: 0; }
+.nav {
+  position: sticky; top: 0; z-index: 80;
+  transition: box-shadow .35s var(--ease), background .35s var(--ease),
+              backdrop-filter .35s var(--ease), padding .35s var(--ease);
+}
+body.hk-scrolled .nav {
+  box-shadow: 0 8px 26px rgba(20, 24, 40, .10);
+  background: rgba(255, 255, 255, .86);
+  backdrop-filter: saturate(1.4) blur(10px);
+}
+.nav-links a { position: relative; }
+.nav-links a::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: -5px; height: 2px;
+  background: var(--accent); transform: scaleX(0); transform-origin: 0 50%;
+  transition: transform .32s var(--ease);
+}
+.nav-links a:hover::after, .nav-links a.on::after { transform: scaleX(1); }
+.brand-mark { transition: transform .5s var(--ease-out); }
+.brand:hover .brand-mark { transform: rotate(-6deg) scale(1.06); }
+
+/* 按钮：微抬 + 光泽扫过 */
+.btn { position: relative; overflow: hidden; transition: transform .3s var(--ease), box-shadow .3s var(--ease), background .25s, border-color .25s, color .25s; }
+.btn:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(19, 121, 184, .18); }
+.btn:active { transform: translateY(0); }
+.btn::after {
+  content: ''; position: absolute; top: 0; left: -120%; width: 60%; height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,.42), transparent);
+  transition: left .6s var(--ease);
+}
+.btn:hover::after { left: 130%; }
+
+/* 卡片：抬升 + 描边发光 + 序号水印 */
+.card { transition: transform .42s var(--ease), box-shadow .42s var(--ease), border-color .42s var(--ease); }
+.card:hover { transform: translateY(-5px); box-shadow: 0 18px 40px rgba(20, 24, 40, .12); border-color: var(--accent); }
+.card .card-num { transition: color .42s var(--ease), transform .42s var(--ease); }
+.card:hover .card-num { color: var(--accent); transform: translateX(2px); }
+.card .ic { transition: transform .42s var(--ease), background .42s var(--ease), color .42s var(--ease); }
+.card:hover .ic { transform: translateY(-2px) scale(1.06); }
+
+/* ============================================================
+   主视觉轮播
+   ============================================================ */
+.hero {
+  position: relative; overflow: hidden;
+  height: clamp(560px, 76vh, 780px);
+  background:
+    radial-gradient(120% 130% at 82% 18%, #FFFFFF 0%, #E9EDF7 46%, #DEE2EF 100%);
+  border-bottom: 1px solid var(--line);
+}
+.hero-bg { position: absolute; inset: 0; overflow: hidden; }
+.hero-bg span { position: absolute; border-radius: 50%; filter: blur(38px); opacity: .5; }
+.hero-bg .hb-1 { width: 620px; height: 620px; right: -120px; top: -180px; background: rgba(36, 156, 228, .30); animation: hk-float 17s var(--ease) infinite; }
+.hero-bg .hb-2 { width: 460px; height: 460px; left: -160px; bottom: -220px; background: rgba(36, 156, 228, .16); animation: hk-float 23s var(--ease) infinite reverse; }
+.hero-bg .hb-3 { width: 300px; height: 300px; left: 46%; top: 12%; background: rgba(255, 255, 255, .75); animation: hk-float 29s var(--ease) infinite; }
+@keyframes hk-float {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(-26px, 22px, 0) scale(1.07); }
+}
+
+.hero-grid { position: absolute; inset: 0; opacity: .42; pointer-events: none;
+  background-image:
+    linear-gradient(var(--line-soft) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line-soft) 1px, transparent 1px);
+  background-size: 54px 54px;
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.25) 62%, transparent 100%);
+          mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.25) 62%, transparent 100%);
+}
+
+.hero-deck { position: absolute; inset: 0; }
+
+.slide {
+  position: absolute; inset: 0;
+  opacity: 0; visibility: hidden;
+  transition: opacity .95s var(--ease), visibility 0s linear .95s;
+}
+.slide.on { opacity: 1; visibility: visible; transition: opacity .95s var(--ease), visibility 0s; }
+
+/* 主视觉图：右侧出血，左缘用蒙版柔化，避免出现硬边 */
+.hero-art {
+  position: absolute; top: 0; right: 0; bottom: 0;
+  display: flex; align-items: flex-end; justify-content: flex-end;
+  pointer-events: none;
+  /* 素材 left 边本身已带 ~70px 羽化（hero-b.webp 的 alpha 中位 x0=.29 → x48=1.00），
+     CSS 蒙版只作"万一换图"的兜底，13% 处即完全实心，不会洗淡人物肩部。 */
+  --art-mask: linear-gradient(to right, transparent 0, rgba(0,0,0,.5) 6%, #000 13%);
+  -webkit-mask-image: var(--art-mask);
+          mask-image: var(--art-mask);
+}
+/* 素材选择（?art=soft|fade|none 便于对比核验；默认即最优的那一档） */
+html[data-art="soft"] .hero-art { --art-mask: linear-gradient(to right, transparent 0, rgba(0,0,0,.34) 15%, #000 31%); }
+html[data-art="fade"] .hero-art { --art-mask: linear-gradient(to right, transparent 0, rgba(0,0,0,.20) 6%, rgba(0,0,0,.60) 18%, #000 30%); }
+html[data-art="none"] .hero-art { --art-mask: none; }
+.hero-art picture { display: block; height: 100%; }
+.hero-art img {
+  height: 100%; width: auto; max-width: none; display: block;
+  transform: scale(1.035) translateX(26px);
+  transition: transform 1.5s var(--ease-out);
+  will-change: transform;
+}
+.slide.on .hero-art img { transform: scale(1) translateX(0); }
+
+/* 第三屏的抽象主视觉（不依赖位图） */
+.hero-visual {
+  position: absolute; top: 0; right: 0; bottom: 0; width: 54%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent); pointer-events: none;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 26%);
+          mask-image: linear-gradient(to right, transparent 0, #000 26%);
+}
+.orb-rings { width: min(74%, 520px); height: auto; opacity: .55; color: var(--accent-dk); }
+.orb-rings ellipse { transform-origin: 200px 200px; animation: hk-spin 44s linear infinite; }
+.orb-rings ellipse:nth-child(2) { animation-duration: 30s; animation-direction: reverse; }
+.orb-rings ellipse:nth-child(3) { animation-duration: 58s; }
+.orb-rings ellipse:nth-child(4) { animation-duration: 38s; animation-direction: reverse; }
+@keyframes hk-spin { to { transform: rotate(360deg); } }
+
+.orb {
+  position: absolute; border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #7CC4F2, var(--accent) 46%, var(--accent-dk) 100%);
+  box-shadow: 0 18px 48px rgba(19, 121, 184, .34);
+  animation: hk-orbit 15s var(--ease) infinite;
+}
+.orb-1 { width: 26px; height: 26px; top: 22%; right: 18%; }
+.orb-2 { width: 16px; height: 16px; top: 62%; right: 32%; animation-duration: 19s; animation-delay: -4s; }
+.orb-3 { width: 11px; height: 11px; top: 40%; right: 42%; animation-duration: 23s; animation-delay: -9s; }
+.orb-core {
+  width: 210px; height: 210px; border-radius: 50%;
+  background: radial-gradient(circle at 36% 30%, #FFFFFF 0%, #CFE8FA 34%, #8CC6EE 62%, #2E8FD0 100%);
+  box-shadow: 0 0 0 1px rgba(255,255,255,.6), 0 26px 70px rgba(19, 121, 184, .30);
+  animation: hk-pulse 6.5s var(--ease) infinite;
+}
+@keyframes hk-orbit {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50%      { transform: translate3d(-14px, -20px, 0); }
+}
+@keyframes hk-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.045); }
+}
+
+/* 文案 */
+.slide .wrap { position: relative; z-index: 3; height: 100%; }
+.hero-inner {
+  /* padding-top 里已经含了为恒定行数预留的空间（h1 两行高 + 正文两行高），
+     所以这里比纯视觉需要的值小一些，让文案块整体落在 hero 的视觉中线上。 */
+  max-width: 660px; padding-top: clamp(46px, 8.2vh, 96px);
+}
+.hero .eyebrow {
+  display: inline-block; font-size: 12px; letter-spacing: .22em; text-transform: uppercase;
+  color: var(--accent-dk); font-weight: 600;
+  opacity: 0; transform: translateY(14px);
+  transition: opacity .8s var(--ease-out), transform .8s var(--ease-out);
+}
+.hero h1 {
+  font-size: clamp(38px, 5.1vw, 68px); line-height: 1.14; letter-spacing: -.012em;
+  margin: 14px 0 18px; font-weight: 700; color: var(--ink);
+  min-height: calc(2 * 1.14em);   /* 恒定两行高：一行的标题不会让下面整体上跳 */
+}
+/* 长标题在标点处断行，且不允许出现"孤字"行（算力即基座，／连接即秩序） */
+.hero h1 .nb { font-style: normal; white-space: nowrap; }
+.hero h1 > span {
+  display: block;
+  opacity: 0; transform: translateY(26px);
+  transition: opacity 1s var(--ease-out), transform 1.05s var(--ease-out);
+}
+.hero p.lead {
+  font-size: 17px; line-height: 1.78; color: var(--ink-2); max-width: 560px;
+  min-height: calc(2 * 1.78em);   /* 正文 2~3 行都不改变 CTA 的位置 */
+  opacity: 0; transform: translateY(20px);
+  transition: opacity .9s var(--ease-out), transform .95s var(--ease-out);
+}
+/* 三屏的 CTA 固定在同一条基线：底部对齐，谁的文字多也不会把按钮推下去 */
+.hero-inner { position: relative; min-height: 100%; }
+.hero .hero-cta { position: absolute; left: 0; bottom: clamp(34px, 6vh, 72px); }
+.hero-cta { margin-top: 30px; opacity: 0; transform: translateY(18px);
+  transition: opacity .9s var(--ease-out), transform .95s var(--ease-out); }
+
+.slide.on .eyebrow       { opacity: 1; transform: none; transition-delay: .16s; }
+.slide.on h1 > span      { opacity: 1; transform: none; transition-delay: .26s; }
+.slide.on p.lead         { opacity: 1; transform: none; transition-delay: .42s; }
+.slide.on .hero-cta      { opacity: 1; transform: none; transition-delay: .56s; }
+
+.slide[aria-hidden="true"] .hero-inner { pointer-events: none; }
+
+/* 底部：指示点 + 角标 */
+.hero-foot { position: absolute; left: 0; right: 0; bottom: 26px; z-index: 6; }
+.hero-foot .wrap { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; }
+.hero-dots { display: flex; gap: 9px; }
+.hero-dots .dot {
+  width: 13px; height: 13px; padding: 0; cursor: pointer;
+  background: transparent; border: 1.5px solid var(--ink-4); border-radius: 1px;
+  transition: background .45s var(--ease), border-color .45s var(--ease), transform .45s var(--ease);
+}
+.hero-dots .dot:hover { border-color: var(--accent); transform: translateY(-2px); }
+.hero-dots .dot.on { background: var(--accent); border-color: var(--accent); transform: scale(1.12); box-shadow: 0 6px 16px rgba(36, 156, 228, .40); }
+.hero-badge {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 8px 16px; border-left: 3px solid var(--accent);
+  background: rgba(255, 255, 255, .72); backdrop-filter: blur(6px);
+  font-size: 13px; color: var(--ink-3); letter-spacing: .06em;
+}
+.hero-badge .hb-k { font-size: 19px; font-weight: 700; color: var(--ink); letter-spacing: 0; }
+
+/* ---------- 数据条 ---------- */
+.stripe { background: var(--panel); border-bottom: 1px solid var(--line); }
+.stripe .hero-stats { margin-top: 0; border: 0; border-left: 1px solid var(--line); background: var(--line); }
+.stripe .hero-stats div { background: var(--panel); padding: 22px 20px; transition: background .4s var(--ease); }
+.stripe .hero-stats div:hover { background: var(--accent-lt); }
+
+/* ---------- 其他复用动效 ---------- */
+.sec-title, .sec-sub { transition: opacity .7s var(--ease-out), transform .7s var(--ease-out); }
+
+.foot-col a, .foot-brand a { transition: color .25s var(--ease), transform .25s var(--ease); display: inline-block; }
+.foot-col a:hover { transform: translateX(3px); }
+
+.ticker { overflow: hidden; }
+.ticker > span, .ticker > a { transition: opacity .3s var(--ease); }
+.ticker:hover > span, .ticker:hover > a { opacity: .72; }
+
+/* 表格式列表的整行悬停 */
+table tbody tr { transition: background .28s var(--ease); }
+
+@media (max-width: 1024px) {
+  .hero { height: clamp(520px, 70vh, 680px); }
+  .hero-inner { max-width: 560px; }
+  .hero-visual { width: 62%; opacity: .8; }
+}
+/* 窄屏 / 矮屏：文案回到文档流，避免"CTA 绝对定位"与正文叠在一起 */
+@media (max-width: 720px), (max-height: 660px) {
+  .hero .hero-cta { position: static; margin-top: 24px; }
+  .hero h1 { min-height: 0; }
+  .hero p.lead { min-height: 0; }
+}
+@media (max-width: 720px) {
+  .hero { height: 620px; }
+  .hero-art { justify-content: center; opacity: .30; }
+  .hero-art img { height: 100%; }
+  .hero-visual { width: 100%; opacity: .34; }
+  .hero-inner { padding-top: 74px; max-width: none; }
+  .hero-foot { bottom: 18px; }
+  .hero-badge { display: none; }
+  .stripe .hero-stats { border-left: 0; }
+}
